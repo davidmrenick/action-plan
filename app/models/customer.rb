@@ -3,6 +3,7 @@ class Customer < ApplicationRecord
 
   def as_json(options)
     {
+      'id': id,
       'firstName': first_name,
       'lastName': last_name,
       'emailAddress': email_address,

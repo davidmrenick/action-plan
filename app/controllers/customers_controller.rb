@@ -1,17 +1,24 @@
 class CustomersController < ApplicationController
 
+  SORT_OPTS = ['type', 'firstName', 'lastName']
+  CSV_HEADERS = ['first_name', 'last_name', 'email_address', 'vehicle_type', 'vehicle_name', 'vehicle_length']
+
   def index
     @customers = Customer.all
-    if customer_params[:sort]
-      render json: @customers.order(customer_params[:sort])
+    if params[:sort]
+      if params[:sort] == 'type'
+        render json: @customers.order(:vehicle_type)
+      elsif SORT_OPTS.include? params[:sort]
+        render json: @customers.order(params[:sort].underscore)
+      end
     else
       render json: @customers.order(created_at: :asc)
     end
   end
 
   def show
-    @customer = Customer.find(customer_params[:id])
-    render json: @customer.transform_keys { |key| key = key.camelize }
+    @customer = Customer.find(params[:id])
+    render json: @customer
   end
 
   def create
@@ -24,10 +31,9 @@ class CustomersController < ApplicationController
   end
 
   def update
-    abort customer_params
-    @customer = Customer.new(customer_params[:id])
+    @customer = Customer.find(customer_params[:id])
     if @customer
-      if user.update(customer_params)
+      if @customer.update(customer_params)
         render json: {message: 'User updated successfully!' }, status: 200
       else
         render error: { error: ''}, status: 400
@@ -38,7 +44,7 @@ class CustomersController < ApplicationController
   end
 
   def destroy
-    @customer = Customer.find(customer_params[:id])
+    @customer = Customer.find(params[:id])
     if @customer
       @customer.destroy
       render json: { message: 'Customer successfully deleted' }, status: 200
@@ -48,11 +54,10 @@ class CustomersController < ApplicationController
   end
 
   def bulk
-
+    CSV.foreach(params[:file], headers: CSV_HEADERS) { |row| Customer.upsert(row) }
   end
 
   def customer_params
-    params.permit('firstName', 'lastName', 'emailAddress', 'vehicleType', 'vehicleName', 'vehicleLength').transform_keys!(&:underscore)
+    params.permit('id', 'firstName', 'lastName', 'emailAddress', 'vehicleType', 'vehicleName', 'vehicleLength').transform_keys!(&:underscore)
   end
-
 end
