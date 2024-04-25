@@ -1,6 +1,8 @@
 class Customer < ApplicationRecord
   enum vehicle_type: ['campervan', 'motorboat', 'bicycle', 'sailboat']
 
+  validates :vehicle_length, comparison: { greater_than: 0 }
+
   def as_json(options)
     {
       'id': id,
