@@ -89,24 +89,29 @@ class CustomersController < ApplicationController
 
   # POST /customers/bulk
   # Receives a csv file of users to create, creates each customer in the list
+  # batch of customers only saved if entire batch is valid, otherwise return bad request
   #
   # @param file [File] the csv file to be processed, sent as multipart/form-data
   def bulk
+    customers = []
     CSV.foreach(params[:file].path, headers: CSV_HEADERS) do |row|
       row['vehicle_length'] = row['vehicle_length'].delete("^0-9")
       cust = Customer.new(row)
       if !cust.valid?
         render error: { error: 'Unable to create customer' }, status: 400 and return
       end
-      cust.save
+      customers << cust
     end
+    customers.each { |cust| cust.save }
     render json: { message: 'Customers successfully created' }, status: 200
   end
 
+  # List of allowed parameters for creating/updating customers, automatically converted to snake_case to simplify insert/update
   def customer_params
     params.permit('id', 'firstName', 'lastName', 'emailAddress', 'vehicleType', 'vehicleName', 'vehicleLength').transform_keys!(&:underscore)
   end
 
+  # Find specific customer record for show/update/destroy
   def customer
     @customer = Customer.find(params[:id])
   end

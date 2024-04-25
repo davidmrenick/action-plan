@@ -1,17 +1,22 @@
+# == Schema Information
+#
+# Table name: customers
+#
+# id              :bigint   not null, primary key
+# first_name      :string
+# last_name       :string
+# email_address   :string
+# vehicle_type    :integer
+# vehicle_name    :string
+# vehicle_length  :integer
 class Customer < ApplicationRecord
   enum vehicle_type: ['campervan', 'motorboat', 'bicycle', 'sailboat']
 
   validates :vehicle_length, comparison: { greater_than: 0 }
 
+  # Override default, formats outgoing json to have camelCased keys
   def as_json(options)
-    {
-      'id': id,
-      'firstName': first_name,
-      'lastName': last_name,
-      'emailAddress': email_address,
-      'vehicleType': vehicle_type,
-      'vehicleName': vehicle_name,
-      'vehicleLength': vehicle_length
-    }
+    hash = super(options)
+    hash.transform_keys!{ |key| key.to_s.camelize(:lower) }
   end
 end

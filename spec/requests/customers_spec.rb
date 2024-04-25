@@ -70,9 +70,17 @@ RSpec.describe "Customers", type: :request do
 
   describe "POST /customers/bulk" do
     let!(:path) { "#{Rails.root}/spec/fixtures/data.csv" }
-    it "creates customers based on the file contents" do
-
-      expect { post "/customers/bulk", params: {file: Rack::Test::UploadedFile.new(path)} }.to change{ Customer.count }
+    let!(:bad_path) { "#{Rails.root}/spec/fixtures/bad_data.csv" }
+    context "with valid file contents" do
+      it "creates customers based on the file contents" do
+        expect { post "/customers/bulk", params: {file: Rack::Test::UploadedFile.new(path)} }.to change{ Customer.count }
+      end
+    end
+    context "with invalid file contents" do
+      it "does not create customers and returns a bad request" do
+        expect { post "/customers/bulk", params: {file: Rack::Test::UploadedFile.new(bad_path)} }.to_not change { Customer.count }
+        expect(response.status).to eq(400)
+      end
     end
   end
 end
