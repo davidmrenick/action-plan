@@ -13,6 +13,7 @@ class Customer < ApplicationRecord
   enum vehicle_type: ['campervan', 'motorboat', 'bicycle', 'sailboat']
 
   validates :vehicle_length, comparison: { greater_than: 0 }
+  validates :first_name, :last_name, :email_address, presence: true
 
   # Override default, formats outgoing json to have camelCased keys
   def as_json(options)

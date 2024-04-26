@@ -12,10 +12,10 @@ class CustomersController < ApplicationController
   # @param sort [String] the attribute to sort by, limited to options in SORT_OPTS, optional
   def index
     @customers = Customer.all
-    if params[:sort]
+    if params[:sort] && SORT_OPTS.include?(params[:sort])
       if params[:sort] == 'type'
         render json: @customers.order(:vehicle_type)
-      elsif SORT_OPTS.include? params[:sort]
+      else
         render json: @customers.order(params[:sort].underscore)
       end
     else
@@ -28,11 +28,16 @@ class CustomersController < ApplicationController
   #
   # @param id [Integer] id of the customer to retrieve
   def show
-    render json: @customer
+    if @customer
+      render json: @customer
+    else
+      render json: { error: 'Customer not found' }, status: :bad_request
+    end
   end
 
   #POST /customers
   # Creates a customer based on sent params, returns created customer formatted as json
+  # If parameters invalid or customer already exists, return bad request
   #
   # @param customer_params [Hash] the params to create a customer with
   # @option first_name [String] customer's first name
@@ -42,12 +47,12 @@ class CustomersController < ApplicationController
   # @option vehicleName [String] the name of the vehicle
   # @option vehicleLength [Integer] the length of the vehicle in feet
   def create
-    @customer = Customer.new(customer_params)
-    if @customer.valid?
+    @customer = Customer.where(customer_params).first_or_initialize
+    if @customer.valid? && !@customer.persisted?
       @customer.save
       render json: @customer
     else
-      render error: { error: 'Unable to create customer' }, status: 400
+      render json: { error: 'Unable to create customer' }, status: :bad_request
     end
   end
 
@@ -65,12 +70,12 @@ class CustomersController < ApplicationController
   def update
     if @customer
       if @customer.update(customer_params)
-        render json: @customer, status: 200
+        render json: @customer
       else
-        render error: { error: 'Unable to update user'}, status: 400
+        render json: { error: 'Unable to update user'}, status: :bad_request
       end
     else
-      render error: { error: 'Customer not found' }, status: 400
+      render json: { error: 'Customer not found' }, status: :bad_request
     end
   end
 
@@ -81,29 +86,30 @@ class CustomersController < ApplicationController
   def destroy
     if @customer
       @customer.destroy
-      render json: { message: 'Customer successfully deleted' }, status: 200
+      render json: { message: 'Customer successfully deleted' }
     else
-      render error: { error: 'Customer not found' }, status: 400
+      render json: { error: 'Customer not found' }, status: :bad_request
     end
   end
 
   # POST /customers/bulk
   # Receives a csv file of users to create, creates each customer in the list
   # batch of customers only saved if entire batch is valid, otherwise return bad request
+  # If a provided customer already exists,
   #
   # @param file [File] the csv file to be processed, sent as multipart/form-data
   def bulk
     customers = []
     CSV.foreach(params[:file].path, headers: CSV_HEADERS) do |row|
       row['vehicle_length'] = row['vehicle_length'].delete("^0-9")
-      cust = Customer.new(row)
-      if !cust.valid?
-        render error: { error: 'Unable to create customer' }, status: 400 and return
+      cust = Customer.where(row.to_h).first_or_initialize
+      if !cust.valid? || cust.persisted?
+        render error: { error: 'Unable to create customer' }, status: :bad_request and return
       end
       customers << cust
     end
     customers.each { |cust| cust.save }
-    render json: { message: 'Customers successfully created' }, status: 200
+    render json: customers
   end
 
   # List of allowed parameters for creating/updating customers, automatically converted to snake_case to simplify insert/update
