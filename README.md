@@ -9,9 +9,6 @@ a duplicate is not created, and the endpoint returns an error.
 There were several places that I tried to build in future contingencies despite the requirements not specifying to do so. For example, when converting 
 keys when rendering a customer as json, I designed it to convert any and all attribute keys rather than specifying a hardcoded list. This allows for more flexibility as the class adds attributes and relations.
 
-In terms of what parts of the requirements could use additional clarity, I think that 
-
-
 ## Future Concerns
 
 There are several concerns I would have for the future of this api. Ideally, this api would be versioned and properly separated into its own module,
@@ -24,3 +21,4 @@ steps to sanitize the input should be considered. Currently, the requirements ha
 One of the biggest changes I would work on going forward is to remove the camelCase attribute names from data ingress and egress. The mismatch of these
 keys adds additional processing that while slight, can add up over thousands or millions of requests. It may not be possible to alter the legacy data from CSVs, but minimizing where this processing needs to be done would benefit performance. I would also tweak a couple edge cases to help simplify code. For example, when sorting the list of customers from `GET /customers`, I would update the `type` option to be `vehicleType` so that it would match the database field name, allowing it to match the other two options (`firstName` and `lastName`) and follow the same generic sorting logic they use rather than requiring a separate check.
 
+Another point that would be beneficial in the future would be to move `vehicle_type` from an enum to its own model with a relation to `Customer` so that more vehicle types could be easily added and validated against. At that time, there could even be steps to add a new `vehicle_type` if one is provided during customer creation that does not match an existing value in the database.
